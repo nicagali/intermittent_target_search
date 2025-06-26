@@ -1,3 +1,5 @@
+# Motion with fixed only passive (old_phase=0, new_phase=0) or only active motion (old_phase=1, new_phase=1)
+
 import yaml
 import rl_opts
 from rl_opts.rl_framework.legacy import TargetEnv, Forager
@@ -6,24 +8,30 @@ import local_mach_param as par
 import plotting
 import numpy as np
 
-# np.random.seed(40)
-# st0 = np.random.get_state()
-# print(st0)
-
 # Read configuration file
-with open(f'{par.CONFIGURATIONS_PATH}exp0.cfg') as f:
+with open(f'{par.CONFIGURATIONS_PATH}exp1.cfg') as f:
     config = yaml.safe_load(f)
+    
+TAU = int(config['WORLD_SIZE']**2 / (4 * config['TRANS_DIFF'])) #characteristic passive time
+TIME_STEPS_TAU = config['NUM_TIME_STEPS'] #
+delta_t = TAU / TIME_STEPS_TAU
+
     
 # Define environment
 env = TargetEnv(Nt=config['NUM_TARGETS'], L=config['WORLD_SIZE'], r=config['r'], rot_diff = config['ROT_DIFF'], trans_diff = config['TRANS_DIFF'], prop_vel=config['PROP_VEL'])
-
-# Loop over
 positions = [[env.positions[0][0]], [env.positions[0][1]]]
-for time in range(int(1/config['DELTA_T'])):
+
+# Loop over time steps of one tau
+
+# for episode_index in range(config['NUM_EPISODES']):
+
+for time_index in range(1, TIME_STEPS_TAU+1):
     
-    env.update_pos(old_phase=0, new_phase=0, delta_t = config['DELTA_T'])  
+    time = time_index*delta_t
     
-    found_target_pos = np.copy(env.target_positions)
+    env.update_pos(old_phase=0, new_phase=0, delta_t = delta_t)  
+    
+    found_target_pos = np.copy(env.target_positions) 
     
     reward = env.check_encounter()
         
