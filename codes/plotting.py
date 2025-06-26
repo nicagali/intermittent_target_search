@@ -1,5 +1,6 @@
 import matplotlib.pyplot as plt
 import local_mach_param as par
+import plotting_param as plot_par
 import numpy as np
 from matplotlib.patches import Circle
 
@@ -32,3 +33,25 @@ def plot_2d_trajectory(ax, positions, box_length, target, target_radius):
     ax.set_aspect("equal")
     ax.legend()
     ax.grid()
+
+def plot_msd(ax, msd, delta_t, env, activity):
+
+    time = np.arange(0,len(msd))*delta_t
+
+    ax.plot(time, msd, **plot_par.msd[f'{activity}_sim'], zorder=1)
+
+    if activity == 'passive':
+        msd_theory = 4*(env.trans_diff)*(time)
+        ax.plot(time, msd_theory, **plot_par.msd[f'{activity}_theory'], zorder=0)
+    if activity == 'active':
+        msd_theory = ( 
+                    4 * env.trans_diff * time +
+                    ((2 * env.prop_vel**2) / env.rot_diff**2) * (env.rot_diff * time - 1 + np.exp(-env.rot_diff * time))
+                    )
+        ax.plot(time, msd_theory, **plot_par.msd[f'{activity}_theory'], zorder=0)
+
+    ax.set_xlabel('t', fontsize = plot_par.axis_fontsize)
+    ax.tick_params(axis='both', labelsize=plot_par.size_ticks)
+    ax.set_ylabel(r'MSD$\langle (r(t)-r_0)^2 \rangle$', fontsize = plot_par.axis_fontsize)
+    ax.grid(':')
+    ax.legend(fontsize = plot_par.legend_size)

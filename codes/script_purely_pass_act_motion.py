@@ -16,18 +16,15 @@ TAU = int(config['WORLD_SIZE']**2 / (4 * config['TRANS_DIFF'])) #characteristic 
 TIME_STEPS_TAU = config['NUM_TIME_STEPS'] #
 delta_t = TAU / TIME_STEPS_TAU
 
-    
+
 # Define environment
 env = TargetEnv(Nt=config['NUM_TARGETS'], L=config['WORLD_SIZE'], r=config['r'], rot_diff = config['ROT_DIFF'], trans_diff = config['TRANS_DIFF'], prop_vel=config['PROP_VEL'])
 positions = [[env.positions[0][0]], [env.positions[0][1]]]
 
-# Loop over time steps of one tau
 
-# for episode_index in range(config['NUM_EPISODES']):
-
-for time_index in range(1, TIME_STEPS_TAU+1):
+for _ in range(1, TIME_STEPS_TAU+1):
     
-    time = time_index*delta_t
+    # time = time_index*delta_t
     
     env.update_pos(old_phase=0, new_phase=0, delta_t = delta_t)  
     
@@ -39,9 +36,9 @@ for time_index in range(1, TIME_STEPS_TAU+1):
     
     positions[0].append(env.positions[0][0])
     positions[1].append(env.positions[0][1])
-    if reward==1:
-        print(reward)
-        break
+    # if reward==1:
+    #     print(reward)
+    #     break
     
 fig, ax = plt.subplots()
 plotting.plot_2d_trajectory(ax, positions, env.L, found_target_pos, env.r)

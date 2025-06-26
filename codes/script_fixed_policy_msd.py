@@ -16,6 +16,45 @@ with open(f'{par.CONFIGURATIONS_PATH}exp1.cfg') as f:
 if config['NUM_TIME_STEPS'] < config['NUM_BINS']:
     raise ValueError(f"Parameters do not match: more bins than timesteps")
     
+def compute_msd(env, activity, timesteps, delta_t):
+    """
+    Computes msd of a fixed active or passive policy. No boundary conditions.
+
+    Parameters
+    ----------
+    env : class
+    Initial configuration of num_agents, parameters of active and passive diffusion.
+
+    Returns
+    -------
+    Mean squared displacement.
+
+    """
+
+    msd = []
+
+    initial_positions = np.copy(env.positions)
+
+    for _ in range(1, timesteps):
+
+        old_phase = 0
+        new_phase = 0
+        if activity == 'active':
+            old_phase = 1
+            new_phase = 1
+
+        for agent_index in range(env.num_agents):
+            env.update_pos(old_phase=old_phase, new_phase=new_phase, delta_t = delta_t, agent_index=agent_index)  
+
+        displacements = env.positions - initial_positions  # shape (N, 2)
+        squared_displacements = np.sum(displacements**2, axis=1)  # sum over x and y for each particle, shape (N,)
+        msd_time_step = np.mean(squared_displacements)
+        msd.append(msd_time_step)
+
+    return msd
+
+
+
 # Parameters  
 TAU = int(config['WORLD_SIZE']**2 / (4 * config['TRANS_DIFF'])) #characteristic passive time
 TIME_STEPS_TAU = config['NUM_TIME_STEPS'] #
@@ -56,7 +95,7 @@ agent = Forager(state_space = STATE_SPACE,
 
 for time_index in range(1, TIME_STEPS_TAU+1):
     
-    time = time_index*delta_t
+    # time = time_index*delta_t
     # print('time_index', time_index)
     
     old_phase = int(agent.phase)
