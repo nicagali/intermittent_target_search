@@ -53,11 +53,12 @@ agents = [Forager(state_space = STATE_SPACE,
 
 
 # Loop over time steps of one tau
+Done = False
+hitting_time = 0
+for agent_index, agent in enumerate(agents):
 
-for time_index in range(1, NUM_TAU*TIME_STEPS_TAU):
-
-    for agent_index, agent in enumerate(agents):
-    
+    for time_index in range(1, (NUM_TAU*TIME_STEPS_TAU+1)):
+        # print('index', time_index)
         old_phase = int(agent.phase)
         phase_duration = int(agent.bin_state())
         # print(old_phase, agent.duration, phase_duration)
@@ -73,18 +74,26 @@ for time_index in range(1, NUM_TAU*TIME_STEPS_TAU):
         
         env.update_pos(old_phase=old_phase, new_phase=agent.phase, delta_t = delta_t, agent_index=agent_index)  
         
-        found_target_pos = np.copy(env.target_positions) 
+        if agent_index==0:
+            found_target_pos = np.copy(env.target_positions) 
         
         reward = env.check_encounter(agent_index=agent_index)
-        if reward==1:
-            print(reward)
-            break
             
-        env.check_bc()
+        env.check_bc(agent_index)
         
         if agent_index==0: #save positions of agent 0
             positions[0].append(env.positions[0][0])
             positions[1].append(env.positions[0][1])
+        if reward==1:
+            print('agent', agent_index+1, 'reward', reward, 'at time', time_index)
+            hitting_time += time_index
+            break
+
+    hitting_time += time_index
+        
+avg_hitting_time_over_tau = hitting_time/(TIME_STEPS_TAU*NUM_AGENTS)
+print(hitting_time, avg_hitting_time_over_tau)
+print(f'First hitting time = {avg_hitting_time_over_tau}tau')
 
     
 fig, ax = plt.subplots()
