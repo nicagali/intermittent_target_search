@@ -1,4 +1,4 @@
-# Motion with fixed only passive (old_phase=0, new_phase=0) or only active motion (old_phase=1, new_phase=1)
+# With fixed h matrix to not changoing position [1,0] calculate msd in a space without bc over one tau. Loop over timesteps in tau and over N agent classes.
 
 import yaml
 import rl_opts
@@ -16,7 +16,7 @@ with open(f'{par.CONFIGURATIONS_PATH}exp1.cfg') as f:
 if config['NUM_TIME_STEPS'] < config['NUM_BINS']:
     raise ValueError(f"Parameters do not match: more bins than timesteps")
     
-def compute_msd(env, activity, timesteps, delta_t):
+def compute_msd(env, agents, timesteps, delta_t):
     """
     Computes msd of a fixed active or passive policy. No boundary conditions.
 
@@ -37,14 +37,22 @@ def compute_msd(env, activity, timesteps, delta_t):
 
     for _ in range(1, timesteps):
 
-        old_phase = 0
-        new_phase = 0
-        if activity == 'active':
-            old_phase = 1
-            new_phase = 1
+        for agent_index, agent in enumerate(agents):
 
-        for agent_index in range(env.num_agents):
-            env.update_pos(old_phase=old_phase, new_phase=new_phase, delta_t = delta_t, agent_index=agent_index)  
+            old_phase = int(agent.phase)
+            phase_duration = int(agent.bin_state())
+            # print(old_phase, agent.duration, phase_duration)
+            
+            observation = [old_phase, phase_duration] # [phi, w]
+            # print(observation)
+            
+            action  = agent.deliberate(observation)
+            # print(action)
+            
+            agent.act(action)
+            # print(agent.phase, agent.duration)
+            
+            env.update_pos(old_phase=old_phase, new_phase=agent.phase, delta_t = delta_t, agent_index = agent_index)  
 
         displacements = env.positions - initial_positions  # shape (N, 2)
         squared_displacements = np.sum(displacements**2, axis=1)  # sum over x and y for each particle, shape (N,)
@@ -62,11 +70,10 @@ delta_t = TAU / TIME_STEPS_TAU
 NUM_TAU = config['NUM_TAUS'] #number of times tau per episode
 EPISODES = config['NUM_EPISODES'] #number of episodes
     
-# print('tau', TAU, 'num_time_steps', config['NUM_TIME_STEPS'],  'delta t', DELTA_T)
+NUM_AGENTS = 1000
     
 # Define environment
-env = TargetEnv(Nt=config['NUM_TARGETS'], L=config['WORLD_SIZE'], r=config['r'], rot_diff = config['ROT_DIFF'], trans_diff = config['TRANS_DIFF'], prop_vel=config['PROP_VEL'])
-positions = [[env.positions[0][0]], [env.positions[0][1]]]
+env = TargetEnv(rot_diff = config['ROT_DIFF'], trans_diff = config['TRANS_DIFF'], prop_vel=config['PROP_VEL'], num_agents = NUM_AGENTS)
 
 #initialize agent 
 NUM_PERCEPT_LIST = [
@@ -81,49 +88,36 @@ for percept in range(NUM_STATES):
     # Intialize as passive
     INITIAL_DISTR.append([1, 0]) # in a state, [prob of not change, prob of change]
 
-print(STATE_SPACE, NUM_STATES)    
+# print(STATE_SPACE, NUM_STATES)    
 
-agent = Forager(state_space = STATE_SPACE,
-                num_actions=config['NUM_ACTIONS'],
-                num_percepts_list=NUM_PERCEPT_LIST,
-                gamma_damping=config['GAMMA'],
-                eta_glow_damping=config['ETA_GLOW'],
-                initial_prob_distr=INITIAL_DISTR)
+agents = [Forager(state_space = STATE_SPACE,
+            num_actions=config['NUM_ACTIONS'],
+            num_percepts_list=NUM_PERCEPT_LIST,
+            gamma_damping=config['GAMMA'],
+            eta_glow_damping=config['ETA_GLOW'],
+            initial_prob_distr=INITIAL_DISTR) for _ in range(env.num_agents)]
 
 
-# Loop over time steps of one tau
+# Compute msd in passive motion
+delta_t = 0.001
+activity = 'passive'
+# msd = compute_msd(env, agents, activity=activity, timesteps=TIME_STEPS_TAU, delta_t=delta_t)
+# np.save(par.RESULTS_PATH+'msd'+activity+'.npy', msd)
+msd = np.load(par.RESULTS_PATH + 'msd' + activity + '.npy')
 
-for time_index in range(1, TIME_STEPS_TAU+1):
-    
-    # time = time_index*delta_t
-    # print('time_index', time_index)
-    
-    old_phase = int(agent.phase)
-    phase_duration = int(agent.bin_state())
-    # print(old_phase, agent.duration, phase_duration)
-    
-    observation = [old_phase, phase_duration] # [phi, w]
-    # print(observation)
-    
-    action  = agent.deliberate(observation)
-    # print(action)
-    
-    agent.act(action)
-    # print(agent.phase, agent.duration)
-    
-    env.update_pos(old_phase=old_phase, new_phase=agent.phase, delta_t = delta_t)  
-    
-    found_target_pos = np.copy(env.target_positions) 
-    
-    reward = env.check_encounter()
-        
-    env.check_bc()
-    
-    positions[0].append(env.positions[0][0])
-    positions[1].append(env.positions[0][1])
-
-    
 fig, ax = plt.subplots()
-plotting.plot_2d_trajectory(ax, positions, env.L, found_target_pos, env.r)
-plt.savefig(f"{par.PLOT_PATH}motion_class_agent.pdf")
+plotting.plot_msd(ax, msd, delta_t, env)
+fig.tight_layout()
+plt.savefig(f"{par.PLOT_PATH}msd_passive_fixed_pol.pdf")
 
+# Compute msd in active motion
+delta_t = 0.001
+activity = 'active'
+msd = compute_msd(env, agents, timesteps=TIME_STEPS_TAU, delta_t=delta_t)
+np.save(par.RESULTS_PATH+'msd'+activity+'pol.npy', msd)
+# msd = np.load(par.RESULTS_PATH + 'msd' + activity + 'pol.npy')
+
+fig, ax = plt.subplots()
+plotting.plot_msd(ax, msd, delta_t, env, activity=activity)
+fig.tight_layout()
+plt.savefig(f"{par.PLOT_PATH}msd_active_fixed_pol.pdf")
