@@ -18,7 +18,7 @@ delta_t = TAU / TIME_STEPS_TAU
 
 
 # Define environment
-env = TargetEnv(Nt=config['NUM_TARGETS'], L=config['WORLD_SIZE'], r=config['r'], rot_diff = config['ROT_DIFF'], trans_diff = config['TRANS_DIFF'], prop_vel=config['PROP_VEL'])
+env = TargetEnv(L=config['WORLD_SIZE'], r=config['r'], rot_diff = config['ROT_DIFF'], trans_diff = config['TRANS_DIFF'], prop_vel=config['PROP_VEL'])
 positions = [[env.positions[0][0]], [env.positions[0][1]]]
 
 
@@ -30,15 +30,15 @@ for _ in range(1, TIME_STEPS_TAU+1):
     
     found_target_pos = np.copy(env.target_positions) 
     
-    reward = env.check_encounter()
+    reward = env.check_encounter_full_target()
         
     env.check_bc()
     
     positions[0].append(env.positions[0][0])
     positions[1].append(env.positions[0][1])
-    # if reward==1:
-    #     print(reward)
-    #     break
+    if reward==1:
+        print(reward)
+        break
     
 fig, ax = plt.subplots()
 plotting.plot_2d_trajectory(ax, positions, env.L, found_target_pos, env.r)

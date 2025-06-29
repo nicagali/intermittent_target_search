@@ -23,10 +23,10 @@ delta_t = TAU / TIME_STEPS_TAU
 NUM_TAU = config['NUM_TAUS'] #number of times tau per episode
 EPISODES = config['NUM_EPISODES'] #number of episodes
     
-NUM_AGENTS = 1
+NUM_AGENTS = 100
     
 # Define environment
-env = TargetEnv(Nt=config['NUM_TARGETS'], L=config['WORLD_SIZE'], r=config['r'], rot_diff = config['ROT_DIFF'], trans_diff = config['TRANS_DIFF'], prop_vel=config['PROP_VEL'], num_agents=NUM_AGENTS)
+env = TargetEnv(L=config['WORLD_SIZE'], r=config['r'], rot_diff = config['ROT_DIFF'], trans_diff = config['TRANS_DIFF'], prop_vel=config['PROP_VEL'], num_agents=NUM_AGENTS)
 positions = [[env.positions[0][0]], [env.positions[0][1]]]
 
 #initialize agent s
@@ -41,7 +41,7 @@ INITIAL_DISTR = []
 for percept in range(NUM_STATES):
     # Intialize as passive
     INITIAL_DISTR.append([1, 0]) # in a state, [prob of not change, prob of change]
-
+policy = np.load(par.RESULTS_PATH+'memory_agent_'+str(1)+'_episode_'+str(50)+'.npy')
 # print(STATE_SPACE, NUM_STATES)    
 
 agents = [Forager(state_space = STATE_SPACE,
@@ -51,11 +51,12 @@ agents = [Forager(state_space = STATE_SPACE,
         eta_glow_damping=config['ETA_GLOW'],
         initial_prob_distr=INITIAL_DISTR) for _ in range(NUM_AGENTS)]
 
-
 # Loop over time steps of one tau
 Done = False
 hitting_time = 0
 for agent_index, agent in enumerate(agents):
+    
+    agent.h_matrix = policy
 
     for time_index in range(1, (NUM_TAU*TIME_STEPS_TAU+1)):
         # print('index', time_index)
@@ -77,7 +78,7 @@ for agent_index, agent in enumerate(agents):
         if agent_index==0:
             found_target_pos = np.copy(env.target_positions) 
         
-        reward = env.check_encounter(agent_index=agent_index)
+        reward = env.check_encounter_full_target(agent_index=agent_index)
             
         env.check_bc(agent_index)
         
