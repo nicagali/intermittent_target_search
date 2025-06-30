@@ -55,3 +55,16 @@ def plot_msd(ax, msd, delta_t, env, activity):
     ax.set_ylabel(r'MSD$\langle (r(t)-r_0)^2 \rangle$', fontsize = plot_par.axis_fontsize)
     ax.grid(':')
     ax.legend(fontsize = plot_par.legend_size)
+
+
+def plot_avg_hitting_time(ax, avg_hitting_time_vec):
+    
+    time = np.arange(1,len(avg_hitting_time_vec)+1)
+
+    ax.plot(time, avg_hitting_time_vec, **plot_par.avg_hitting_time)
+
+    ax.set_xlabel('Episode', fontsize = plot_par.axis_fontsize)
+    ax.tick_params(axis='both', labelsize=plot_par.size_ticks)
+    ax.set_ylabel(r'$t_{hit}/\tau$', fontsize = plot_par.axis_fontsize)
+    ax.grid(':')
+    ax.legend(fontsize = plot_par.legend_size)

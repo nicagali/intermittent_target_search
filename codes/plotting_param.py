@@ -11,3 +11,5 @@ msd = {
     'active_theory': dict(c = 'blueviolet', lw=2, label = r'$4D_T t + \frac{2\nu^2}{D_R^2}(D_R t -1 + e^{-D_R t})$'),
     
 }
+
+avg_hitting_time = dict(c = 'dodgerblue', marker = 'o', lw=2)
